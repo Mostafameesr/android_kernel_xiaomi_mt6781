@@ -742,6 +742,12 @@ static int sco_sock_sendmsg(struct socket *sock, struct msghdr *msg,
 		err = -ENOTCONN;
 
 	release_sock(sk);
+<<<<<<< HEAD
+=======
+
+	if (err < 0)
+		kfree_skb(skb);
+>>>>>>> 2eb5a851e794 (Bluetooth: SCO: Fix sco_send_frame returning skb->len)
 	return err;
 }
 
