@@ -749,6 +749,58 @@ static int credit_entropy_bits_safe(struct entropy_store *r, int nbits)
 	credit_entropy_bits(r, nbits);
 	return 0;
 }
+EXPORT_SYMBOL(wait_for_random_bytes);
+
+/*
+ * Add a callback function that will be invoked when the input
+ * pool is initialised.
+ *
+ * returns: 0 if callback is successfully added
+ *	    -EALREADY if pool is already initialised (callback not called)
+ */
+int __cold register_random_ready_notifier(struct notifier_block *nb)
+{
+	unsigned long flags;
+	int ret = -EALREADY;
+
+	if (crng_ready())
+		return ret;
+
+	spin_lock_irqsave(&random_ready_chain_lock, flags);
+	if (!crng_ready())
+		ret = raw_notifier_chain_register(&random_ready_chain, nb);
+	spin_unlock_irqrestore(&random_ready_chain_lock, flags);
+	return ret;
+}
+
+/*
+ * Delete a previously registered readiness callback function.
+ */
+int __cold unregister_random_ready_notifier(struct notifier_block *nb)
+{
+	unsigned long flags;
+	int ret;
+
+	spin_lock_irqsave(&random_ready_chain_lock, flags);
+	ret = raw_notifier_chain_unregister(&random_ready_chain, nb);
+	spin_unlock_irqrestore(&random_ready_chain_lock, flags);
+	return ret;
+}
+
+static void __cold process_random_ready_list(void)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&random_ready_chain_lock, flags);
+	raw_notifier_call_chain(&random_ready_chain, 0, NULL);
+	spin_unlock_irqrestore(&random_ready_chain_lock, flags);
+}
+
+#define warn_unseeded_randomness() \
+	if (IS_ENABLED(CONFIG_WARN_ALL_UNSEEDED_RANDOM) && !crng_ready()) \
+		printk_deferred(KERN_NOTICE "random: %s called from %pS with crng_init=%d\n", \
+				__func__, (void *)_RET_IP_, crng_init)
+
 
 /*********************************************************************
  *
