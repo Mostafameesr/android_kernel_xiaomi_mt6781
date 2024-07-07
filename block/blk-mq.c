@@ -44,21 +44,20 @@ static void blk_mq_poll_stats_fn(struct blk_stat_callback *cb);
 
 static int blk_mq_poll_stats_bkt(const struct request *rq)
 {
-	int ddir, bytes, bucket;
+       int ddir = rq_data_dir(rq);
+       int bytes = blk_rq_bytes(rq);
+       int bucket = ddir + 2 * (ilog2(bytes) - 9);
 
-	ddir = rq_data_dir(rq);
-	bytes = blk_rq_bytes(rq);
+       // Use likely/unlikely to hint the branch predictor
+       if (unlikely(bucket < 0))
+           return -1;
+       if (unlikely(bucket >= BLK_MQ_POLL_STATS_BKTS))
+           return ddir + BLK_MQ_POLL_STATS_BKTS - 2;
 
-	bucket = ddir + 2*(ilog2(bytes) - 9);
-
-	if (bucket < 0)
-		return -1;
-	else if (bucket >= BLK_MQ_POLL_STATS_BKTS)
-		return ddir + BLK_MQ_POLL_STATS_BKTS - 2;
-
-	return bucket;
+       return bucket;
 }
 
+        
 /*
  * Check if any of the ctx's have pending work in this hardware queue
  */
