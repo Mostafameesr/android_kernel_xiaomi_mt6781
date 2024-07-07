@@ -37,8 +37,8 @@
  *
  * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
  */
-unsigned int sysctl_sched_latency			= 10000000ULL;
-unsigned int normalized_sysctl_sched_latency		= 10000000ULL;
+unsigned int sysctl_sched_latency			= 5000000ULL; // 5ms
+unsigned int normalized_sysctl_sched_latency		= 5000000ULL; // 5ms
 
 /*
  * Enable/disable honoring sync flag in energy-aware wakeups.
@@ -5317,8 +5317,7 @@ static inline void update_overutilized_status(struct rq *rq) { }
  * increased. Here we update the fair scheduling stats and
  * then put the task into the rbtree:
  */
-static void
-enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
+static void enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct cfs_rq *cfs_rq;
 	struct sched_entity *se = &p->se;
